@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit, jit
+from numba import njit
 
 @njit
 def make_rounds(
@@ -132,25 +132,30 @@ def hindex2xy(hindex, p):
 
         hindex = hindex >> 2
 
+    x = int(x)
+    y = int(y)
+
     return x, y
 
 @njit
 def make_hilbert_curve(
-    hilbert_x,
-    hilbert_y,
+    hilbert_arr,
     p
 ):
+    a = int(2**p)
     for i in range(2**(2*p)):
-        hilbert_x[i], hilbert_y[i] = hindex2xy(i, p)
+        x, y = hindex2xy(i, p)
+        # x = int(x)
+        # y = int(y)
+        hilbert_arr[x+a*y] = i
 
-    return hilbert_x, hilbert_y
+    return hilbert_arr
 
 @njit
 def sort_along_hilbert_curve(
     org_points,
     temp_points,
-    hilbert_x,
-    hilbert_y,
+    hilbert_arr,
     new_indices,
     org_points_end,
     p
@@ -187,44 +192,46 @@ def sort_along_hilbert_curve(
         elif max_y < y:
             max_y = y
 
+    # print("max_x, min_x : " + str([max_x, min_x]))
+    # print("max_y, min_y : " + str([max_y, min_y]) + "\n")
     max_x -= min_x
     max_y -= min_y
 
-    if max_x == 0:
-        max_x = 1
-    if max_y == 0:
-        max_y = 1
+    # if max_x == 0:
+    #     max_x = 1
+    # if max_y == 0:
+    #     max_y = 1
 
     if max_y > max_x:
         max_xy = max_y
     else:
         max_xy = max_x
 
+    if max_xy == 0:
+        max_xy = 1
+
     temp = 2**p
 
     for i in range(len_points):
         temp_points[2*i] -=  min_x
-        temp_points[2*i] *= temp/max_xy
+        temp_points[2*i] /= max_xy
+        temp_points[2*i] *= (temp-1)
         temp_points[2*i+1] -=  min_y
-        temp_points[2*i+1] *= temp/max_xy
+        temp_points[2*i+1] /= max_xy
+        temp_points[2*i+1] *= (temp-1)
 
     for i in range(len_points):
         x = temp_points[2*i]
         y = temp_points[2*i+1]
 
-        if x - np.floor(x) < 0.5:
-            x = np.floor(x)
-        else:
-            x = np.ceil(x)
-        if y - np.floor(y) < 0.5:
-            y = np.floor(y)
-        else:
-            y = np.ceil(y)
+        x = np.round(x, 0)
+        y = np.round(y, 0)
 
-        for j in range(2**(2*p)):
-            if hilbert_x[j] == x and hilbert_y[j] == y:
-                new_indices[i] = j
-                break
+        # try:
+        new_indices[i] = hilbert_arr[int(x+temp*y)]
+        # except:
+            # print("x, y : " + str([x, y]))
+            # print("x+temp*y : " + str(x+temp*y) + "\n")
 
     new_indices[0:len_points] = np.argsort(new_indices[0:len_points])
 
@@ -249,8 +256,7 @@ def final_assembly(
     boundary_indices,
     points_left_old,
     points_left_new,
-    hilbert_x,
-    hilbert_y,
+    hilbert_arr,
     org_points,
     temp_points,
     new_indices,
@@ -264,9 +270,8 @@ def final_assembly(
 
     ## print("points according to rounds : " + str([points.reshape(int(0.5*len(points)), 2)]))
 
-    hilbert_x, hilbert_y = make_hilbert_curve(
-        hilbert_x,
-        hilbert_y,
+    hilbert_arr = make_hilbert_curve(
+        hilbert_arr,
         p
     )
 
@@ -279,8 +284,7 @@ def final_assembly(
         temp_points = sort_along_hilbert_curve(
             org_points,
             temp_points,
-            hilbert_x,
-            hilbert_y,
+            hilbert_arr,
             new_indices,
             org_points_end,
             p
@@ -333,10 +337,9 @@ def make_BRIO(points):
             )
         )
 
-    p = min(p, 7)
+    # p = min(p, 7)
 
-    hilbert_x = np.empty(2**(2*p), dtype=np.float64)
-    hilbert_y = np.empty(2**(2*p), dtype=np.float64)
+    hilbert_arr = np.empty(2**(2*p), dtype=np.int64)
 
     org_points = np.empty(2*len_points, dtype=np.float64)
     temp_points = np.empty(2*len_points, dtype=np.float64)
@@ -348,8 +351,7 @@ def make_BRIO(points):
         boundary_indices,
         points_left_old,
         points_left_new,
-        hilbert_x,
-        hilbert_y,
+        hilbert_arr,
         org_points,
         temp_points,
         new_indices,
