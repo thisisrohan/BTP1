@@ -1,5 +1,6 @@
 import numpy as np
 from numba import njit
+from .BRIO import make_BRIO
 
 @njit
 def _walk(
@@ -810,6 +811,7 @@ class Delaunay2D:
 
         self.vertices_ID = np.empty(3*(2*N-2), dtype=np.int64)
         self.neighbour_ID = np.empty(3*(2*N-2), dtype=np.int64)
+        self.points = make_BRIO(self.points)
 
         self.points, self.vertices_ID, self.neighbour_ID, self.num_tri_v, self.num_tri_n = initialize(
             points,

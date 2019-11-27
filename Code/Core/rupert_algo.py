@@ -1,7 +1,7 @@
 import numpy as np
 from numba import njit
 import matplotlib.pyplot as plt
-import test5 as t5
+from .test5 import Delaunay2D, add_point, _walk
 
 
 @njit
@@ -103,7 +103,7 @@ def find_and_fix_bad_segments(
 
             old_tri = num_tri_n-1
             point_id = num_points-1
-            vertices_ID, neighbour_ID, num_tri_v, num_tri_n, point_already_exists = t5.add_point(
+            vertices_ID, neighbour_ID, num_tri_v, num_tri_n, point_already_exists = add_point(
                 old_tri,
                 wh_vtx,
                 walk_pts,
@@ -426,7 +426,7 @@ def find_and_fix_bad_triangles(
 
                         old_tri = num_tri_n-1
                         point_id = num_points-1
-                        vertices_ID, neighbour_ID, num_tri_v, num_tri_n, point_already_exists = t5.add_point(
+                        vertices_ID, neighbour_ID, num_tri_v, num_tri_n, point_already_exists = add_point(
                             old_tri,
                             wh_vtx,
                             walk_pts,
@@ -542,7 +542,7 @@ def find_and_fix_bad_triangles(
                     # print("         : b = " + str([b_x, b_y]))
                     # print("         : c = " + str([c_x, c_y]))
 
-                    vertices_ID, neighbour_ID, num_tri_v, num_tri_n, point_already_exists = t5.add_point(
+                    vertices_ID, neighbour_ID, num_tri_v, num_tri_n, point_already_exists = add_point(
                         old_tri,
                         wh_vtx,
                         walk_pts,
@@ -659,7 +659,7 @@ def insert_virus(
         insertion_point_x = insertion_points[2*k]
         insertion_point_y = insertion_points[2*k+1]
 
-        enclosing_tri = t5._walk(
+        enclosing_tri = _walk(
             insertion_point_x,
             insertion_point_y,
             old_tri,
@@ -923,7 +923,7 @@ class RefinedDelaunay:
         '''
 
         temp = np.random.rand(20)
-        tempDT = t5.Delaunay2D(temp)
+        tempDT = Delaunay2D(temp)
         tempDT.makeDT()
         del tempDT
         del temp
@@ -931,7 +931,7 @@ class RefinedDelaunay:
         if len(insertion_points.shape) > 1:
             insertion_points = insertion_points.reshape(2*len(insertion_points))
 
-        DT = t5.Delaunay2D(points)
+        DT = Delaunay2D(points)
         DT.makeDT()
         self.points = DT.points
         self.neighbour_ID = DT.neighbour_ID
